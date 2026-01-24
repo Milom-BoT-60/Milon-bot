@@ -54,7 +54,7 @@ module.exports.run = async ({ api, event }) => {
 📶 ᴘɪɴɢ    : ${ping}ᴍꜱ
 ⏰ ᴛɪᴍᴇ    : ${currentTime}
 📅 ᴅᴀᴛᴇ    : ${currentDate}
-👑 ᴏᴡɴᴇʀ   : ɪᴍʀᴀɴ_🦋`;
+👑 ᴏᴡɴᴇʀ   : Milon_🦋`;
 
     const apiUrl = "https://uptime-imran.onrender.com/up";
 
