@@ -51,7 +51,7 @@ module.exports.run = async ({ api, event, args }) => {
 ❖ 𝗙𝗿𝗮𝗺𝗲𝘄𝗼𝗿𝗸: 『 milon-API 』
 `.trim();
 
-  const imagePath = __dirname + "https://i.imgur.com/VabKlbY.jpeg";
+  const imagePath = "https://i.imgur.com/VabKlbY.jpeg";
   const imageURL = `https://graph.facebook.com/100075122837809/picture?height=720&width=720&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`;
 
   request(encodeURI(imageURL))
