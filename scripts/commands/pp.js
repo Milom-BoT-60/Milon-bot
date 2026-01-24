@@ -1,49 +1,98 @@
-const axios = require("axios");
-const fs = require("fs-extra");
-const path = require("path");
+const express = require('express');
+const bodyParser = require('body-parser');
+const axios = require('axios');
+const fs = require('fs');
 
-module.exports.config = {
-  name: "pp",
-  version: "1.0.3",
-  permission: 0,
-  credits: "Imran",
-  prefix: true,
-  description: "Send profile picture using UID, mention or reply",
-  category: "image",
-  usages: "[uid/reply/mention]",
-  cooldowns: 5
-};
+const app = express();
+app.use(bodyParser.json());
 
-module.exports.run = async function ({ api, event, args }) {
-  let uid;
+// ---------------- Config ----------------
+const PAGE_ACCESS_TOKEN = "YOUR_PAGE_ACCESS_TOKEN"; // Bot Page token
+const VERIFY_TOKEN = "YOUR_VERIFY_TOKEN"; // Webhook verify token
+const SECURE_PIN = "1234"; // যাকে জানাবে, শুধু সে পিক পাবে
 
-  if (event.type === "message_reply") {
-    uid = event.messageReply.senderID;
-  } else if (Object.keys(event.mentions || {}).length > 0) {
-    uid = Object.keys(event.mentions)[0];
-  } else if (args[0] && /^\d+$/.test(args[0])) {
-    uid = args[0];
-  } else {
-    uid = event.senderID;
-  }
+// ---------------- Webhook verification ----------------
+app.get('/webhook', (req, res) => {
+    const mode = req.query['hub.mode'];
+    const token = req.query['hub.verify_token'];
+    const challenge = req.query['hub.challenge'];
 
-  const imageUrl = `${global.imranapi.imran}/api/fbp?uid=${uid}`;
-  const filePath = path.join(__dirname, "cache", `${uid}.jpg`);
+    if(mode && token){
+        if(token === VERIFY_TOKEN){
+            console.log('✅ Webhook verified');
+            res.status(200).send(challenge);
+        } else {
+            res.sendStatus(403);
+        }
+    }
+});
 
-  try {
-    const response = await axios.get(imageUrl, { responseType: "stream" });
-    await fs.ensureDir(path.dirname(filePath));
-    const writer = fs.createWriteStream(filePath);
-    response.data.pipe(writer);
+// ---------------- Receive messages ----------------
+app.post('/webhook', async (req, res) => {
+    const body = req.body;
 
-    writer.on("finish", () => {
-      api.sendMessage({
-        body: `━━ ❖ 𝑷𝑹𝑶𝑭𝑰𝑳𝑬 𝑷𝑰𝑪 ❖ ━━`,
-        attachment: fs.createReadStream(filePath)
-      }, event.threadID, () => fs.unlinkSync(filePath), event.messageID);
-    });
-  } catch (err) {
-    console.error(err);
-    api.sendMessage("❌ প্রোফাইল পিকচার আনতে সমস্যা হয়েছে!", event.threadID, event.messageID);
-  }
-};
+    if(body.object === 'page'){
+        body.entry.forEach(async entry => {
+            const webhookEvent = entry.messaging[0];
+            const senderPsid = webhookEvent.sender.id;
+
+            if(webhookEvent.message && webhookEvent.message.text){
+                const messageText = webhookEvent.message.text.trim().toLowerCase();
+                
+                // format: get pic 1234 pik.sj
+                if(messageText.startsWith("get pic")){
+                    const parts = webhookEvent.message.text.split(" ");
+                    const pin = parts[2];
+                    const customName = parts[3] || `profile_pic_${senderPsid}`;
+
+                    if(pin === SECURE_PIN){
+                        await fetchProfilePic(senderPsid, customName);
+                    } else {
+                        sendTextMessage(senderPsid, "❌ Invalid PIN! Access denied.");
+                    }
+                } else {
+                    sendTextMessage(senderPsid, `You said: "${webhookEvent.message.text}"`);
+                }
+            }
+        });
+
+        res.status(200).send('EVENT_RECEIVED');
+    } else {
+        res.sendStatus(404);
+    }
+});
+
+// ---------------- Send text message ----------------
+function sendTextMessage(senderPsid, message){
+    axios.post(`https://graph.facebook.com/v16.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`, {
+        recipient: { id: senderPsid },
+        message: { text: message }
+    }).catch(err => console.error("❌ Error sending message:", err.response?.data));
+}
+
+// ---------------- Fetch profile pic ----------------
+async function fetchProfilePic(senderPsid, customName){
+    try {
+        const res = await axios.get(`https://graph.facebook.com/${senderPsid}?fields=first_name,last_name,profile_pic&access_token=${PAGE_ACCESS_TOKEN}`);
+        const profilePicUrl = res.data.profile_pic;
+        const userName = `${res.data.first_name}_${res.data.last_name}`;
+
+        const path = `${customName.replace(/\.[^/.]+$/, "")}.jpg`; // auto .jpg
+
+        const response = await axios({ method: 'GET', url: profilePicUrl, responseType: 'stream' });
+        response.data.pipe(fs.createWriteStream(path));
+
+        response.data.on('end', () => {
+            console.log(`✅ Profile picture saved: ${path}`);
+            sendTextMessage(senderPsid, `Here is your profile picture: ${profilePicUrl}`);
+        });
+
+    } catch (err) {
+        console.error("❌ Failed to fetch profile picture:", err.message);
+        sendTextMessage(senderPsid, "❌ Failed to fetch profile picture.");
+    }
+}
+
+// ---------------- Start server ----------------
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`🚀 pp.js Messenger Bot running on port ${PORT}`));
