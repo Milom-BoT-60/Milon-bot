@@ -4,18 +4,19 @@ const path = require("path");
 
 module.exports.config = {
   name: "pp",
-  version: "2.0.0",
+  version: "2.1.0",
   permission: 0,
   credits: "Imran",
   prefix: true,
-  description: "Send profile picture using UID, mention or reply with PIN protection",
+  description: "Send profile picture using UID, mention, or reply with PIN protection",
   category: "image",
   usages: "[uid/reply/mention] PIN",
   cooldowns: 5
 };
 
 module.exports.run = async function ({ api, event, args, global }) {
-  const SECURE_PIN = "1234"; // যাকে PIN দেওয়া হবে
+  const SECURE_PIN = "1234"; // PIN যেটা দিবে, এটা অবশ্যই একই হতে হবে
+
   let uid;
 
   // ---------------- Get UID ----------------
@@ -30,8 +31,9 @@ module.exports.run = async function ({ api, event, args, global }) {
   }
 
   // ---------------- Get PIN ----------------
-  const pin = args.find(a => a === SECURE_PIN);
-  if (!pin) {
+  // PIN সর্বদা শেষ args-এ হবে
+  const pin = args[args.length - 1];
+  if (pin !== SECURE_PIN) {
     return api.sendMessage("❌ Access denied! PIN missing or incorrect.", event.threadID, event.messageID);
   }
 
