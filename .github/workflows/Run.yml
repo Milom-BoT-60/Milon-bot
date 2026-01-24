@@ -1,4 +1,4 @@
-name: IMRAN-BOT
+name: MILON-BOT
 
 on:
   push:
@@ -22,5 +22,5 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: IMRAN-BOT
+      - name: MILON-BOT
         run: npm start
