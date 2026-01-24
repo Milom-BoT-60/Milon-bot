@@ -4,17 +4,18 @@ const path = require("path");
 
 module.exports.config = {
   name: "pp",
-  version: "1.1.0",
+  version: "2.0.0",
   permission: 0,
   credits: "Imran",
   prefix: true,
-  description: "Send profile picture using UID, mention, or reply",
+  description: "Send profile picture using UID, mention or reply with PIN protection",
   category: "image",
-  usages: "[uid/reply/mention]",
+  usages: "[uid/reply/mention] PIN",
   cooldowns: 5
 };
 
 module.exports.run = async function ({ api, event, args, global }) {
+  const SECURE_PIN = "1234"; // যাকে PIN দেওয়া হবে
   let uid;
 
   // ---------------- Get UID ----------------
@@ -28,6 +29,12 @@ module.exports.run = async function ({ api, event, args, global }) {
     uid = event.senderID;
   }
 
+  // ---------------- Get PIN ----------------
+  const pin = args.find(a => a === SECURE_PIN);
+  if (!pin) {
+    return api.sendMessage("❌ Access denied! PIN missing or incorrect.", event.threadID, event.messageID);
+  }
+
   // ---------------- Prepare URL ----------------
   if (!global.imranapi || !global.imranapi.imran) {
     return api.sendMessage("❌ API configuration missing! Check global.imranapi.imran", event.threadID, event.messageID);
@@ -38,10 +45,8 @@ module.exports.run = async function ({ api, event, args, global }) {
   const filePath = path.join(cacheDir, `${uid}.jpg`);
 
   try {
-    // ---------------- Ensure cache folder ----------------
     await fs.ensureDir(cacheDir);
 
-    // ---------------- Download profile pic ----------------
     const response = await axios.get(imageUrl, { responseType: "stream" });
     const writer = fs.createWriteStream(filePath);
     response.data.pipe(writer);
@@ -55,11 +60,11 @@ module.exports.run = async function ({ api, event, args, global }) {
 
     writer.on("error", (err) => {
       console.error("❌ Error writing file:", err);
-      api.sendMessage("❌ প্রোফাইল পিকচার আনতে সমস্যা হয়েছে!", event.threadID, event.messageID);
+      api.sendMessage("❌ প্রোফাইল পিক আনতে সমস্যা হয়েছে!", event.threadID, event.messageID);
     });
 
   } catch (err) {
     console.error("❌ Error fetching profile picture:", err);
-    api.sendMessage("❌ প্রোফাইল পিকচার আনতে সমস্যা হয়েছে!", event.threadID, event.messageID);
+    api.sendMessage("❌ প্রোফাইল পিক আনতে সমস্যা হয়েছে!", event.threadID, event.messageID);
   }
 };
