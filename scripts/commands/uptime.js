@@ -56,7 +56,7 @@ module.exports.run = async ({ api, event }) => {
 📅 ᴅᴀᴛᴇ    : ${currentDate}
 👑 ᴏᴡɴᴇʀ   : Milon_🦋`;
 
-    const apiUrl = "https://uptime-imran.onrender.com/up";
+    const apiUrl = "https://img.shields.io/badge/MilonBot-Uptime%20Running-00ff99";
 
     const messagePayload = { body: bodyText };
 
