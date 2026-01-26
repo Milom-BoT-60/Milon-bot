@@ -1,5 +1,5 @@
 module.exports = async ({ api, event }) => {
-  const logger = require('./main/catalogs/IMRANC.js')
+  const logger = require('./main/catalogs/MILONC.js')
   
   const configCustom = {
     autosetbio: {
